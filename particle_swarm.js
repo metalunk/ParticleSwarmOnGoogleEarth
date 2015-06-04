@@ -12,10 +12,14 @@ var ParticleSwarm;
      * 座標と標高を扱う Class
      */
     var Coordinate = (function () {
-        function Coordinate(longitude, latitude) {
+        function Coordinate(longitude, latitude, elevation) {
+            if (elevation === void 0) { elevation = null; }
             this.elevation = null;
             this.longitude = longitude;
             this.latitude = latitude;
+            if (elevation !== null) {
+                this.elevation = elevation;
+            }
         }
         /**
          * ランダムで座標を生成する
@@ -34,14 +38,12 @@ var ParticleSwarm;
         /**
          * 座標をよしなに変換しながら足す
          *
-         * @param coordinate {Coordinate}
          * @param vector {Coordinate}
          * @returns {Coordinate}
          */
-        Coordinate.plusCoordinate = function (coordinate, vector) {
-            coordinate.longitude += vector.longitude;
-            coordinate.latitude += vector.latitude;
-            return coordinate;
+        Coordinate.prototype.plusCoordinate = function (vector) {
+            this.longitude += vector.longitude;
+            this.latitude += vector.latitude;
         };
         return Coordinate;
     })();
@@ -61,13 +63,13 @@ var ParticleSwarm;
          * 標高を更新する
          * 自己最良を更新したら現在の座標で localBestCoordinate も更新する
          *
-         * @param coordinate
+         * @param elevation
          */
-        Particle.prototype.updateElevation = function (coordinate) {
-            if (this.localBestCoordinate === null || this.localBestCoordinate.elevation <= coordinate.elevation) {
-                this.localBestCoordinate = coordinate;
+        Particle.prototype.updateElevation = function (elevation) {
+            if (this.localBestCoordinate === null || this.localBestCoordinate.elevation <= elevation) {
+                this.localBestCoordinate = new Coordinate(this.coordinate.longitude, this.coordinate.latitude, elevation);
             }
-            this.coordinate = coordinate;
+            this.coordinate.elevation = elevation;
         };
         /**
          * vector を更新する
@@ -86,7 +88,7 @@ var ParticleSwarm;
          * 座標を更新する
          */
         Particle.prototype.moveToNext = function () {
-            this.coordinate = Coordinate.plusCoordinate(this.coordinate, this.vector);
+            this.coordinate.plusCoordinate(this.vector);
         };
         return Particle;
     })();
@@ -108,10 +110,7 @@ var ParticleSwarm;
      */
     function updateElevations(particles) {
         for (var i = 0; i < particles.length; i++) {
-            var coordinate = particles[i].coordinate;
-            // coordinate.elevation = Math.random();
-            coordinate.elevation++;
-            particles[i].updateElevation(coordinate); // TODO
+            particles[i].updateElevation(Math.random()); // TODO
         }
         return particles;
     }
@@ -122,18 +121,13 @@ var ParticleSwarm;
         var particles = initializeParticle();
         var bestCoordinate = null;
         for (var i = 0; i < LOOP_MAX; i++) {
-            if (bestCoordinate !== null) {
-                console.log("before : " + bestCoordinate.elevation);
-            }
             particles = updateElevations(particles);
-            if (bestCoordinate !== null) {
-                console.log("after : " + bestCoordinate.elevation);
-            }
             // TODO : 描画
             // 全体の最良地点を求める
             for (var j = 0; j < particles.length; j++) {
                 if (bestCoordinate === null || bestCoordinate.elevation < particles[j].coordinate.elevation) {
-                    bestCoordinate = particles[j].coordinate;
+                    var tmpCoordinate = particles[j].coordinate;
+                    bestCoordinate = new Coordinate(tmpCoordinate.longitude, tmpCoordinate.latitude, tmpCoordinate.elevation);
                 }
             }
             // それぞれの Particle について，vector を求め，次の座標を決定する
