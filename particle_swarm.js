@@ -1,13 +1,17 @@
+/// <reference path="google_earth.ts"/>
 /**
  * ParticleSwarm
  */
 var ParticleSwarm;
 (function (ParticleSwarm) {
-    var LOOP_MAX = 10;
-    var N_PARTICLE = 10;
+    var LOOP_MAX = 30;
+    var N_PARTICLE = 20; // ひとまず Google Elevation API の一度の最大リクエスト数である 512 まで
     var INERTIA = 0.9;
-    var C1_RATE = 0.9;
-    var C2_RATE = 0.9;
+    var C1_RATE = 0.9; // 郡の最良点方向へ向かう割合
+    var C2_RATE = 0.9; // 自分の最良点方向へ向かう割合
+    var MAXIMIZATION = 1; // -1 : minimization, 1 : maximization
+    var ROUND = 100000000;
+    var ge;
     /**
      * 座標と標高を扱う Class
      */
@@ -21,6 +25,59 @@ var ParticleSwarm;
                 this.elevation = elevation;
             }
         }
+        /**
+         * @param elevation {number}
+         */
+        Coordinate.prototype.setElevation = function (elevation) {
+            this.elevation = elevation;
+        };
+        /**
+         * 最大化 / 最小化の切り替えのため，{-1, 1} をとる MAXIMIZATION をかける
+         *
+         * @returns {number}
+         */
+        Coordinate.prototype.getElevation = function () {
+            return this.elevation * MAXIMIZATION;
+        };
+        /**
+         * 座標をよしなに変換しながら足す
+         * TODO : 変換が正しいのか確認する
+         *
+         * @param vector {Coordinate}
+         * @returns {Coordinate}
+         */
+        Coordinate.prototype.plusCoordinate = function (vector) {
+            this.longitude += vector.longitude;
+            this.latitude += vector.latitude;
+            // 座標が直交座標系からはみ出たときの変換
+            var i = 0;
+            while (this.longitude < -180 || 180 < this.longitude || this.latitude < -90 || 90 < this.latitude) {
+                this.longitude = Coordinate.positiveMod(this.longitude + 180, 360) - 180;
+                if (this.latitude < -90 || 90 < this.latitude) {
+                    if (this.latitude < -90) {
+                        this.latitude = -180 - this.latitude;
+                    }
+                    else if (90 < this.latitude) {
+                        this.latitude = 180 - this.latitude;
+                    }
+                    if (0 <= this.longitude) {
+                        this.longitude -= 180;
+                    }
+                    else {
+                        this.longitude += 180;
+                    }
+                }
+                // 念のため無限ループ回避
+                if (30 < i++) {
+                    console.log("Break");
+                    console.log(this);
+                    break;
+                }
+            }
+            // 四捨五入
+            this.longitude = Math.round(this.longitude * ROUND) / ROUND;
+            this.latitude = Math.round(this.latitude * ROUND) / ROUND;
+        };
         /**
          * ランダムで座標を生成する
          *
@@ -36,19 +93,26 @@ var ParticleSwarm;
             return new Coordinate(longitude, latitude);
         };
         /**
-         * 座標をよしなに変換しながら足す
+         * 正の mod を返す
+         * JavaScript の % は -190 % 180 = -10 と返すが
+         * positiveMod は -190 % 180 = 170 と返す
          *
-         * @param vector {Coordinate}
-         * @returns {Coordinate}
+         * @param a
+         * @param b
+         * @returns {number}
          */
-        Coordinate.prototype.plusCoordinate = function (vector) {
-            this.longitude += vector.longitude;
-            this.latitude += vector.latitude;
+        Coordinate.positiveMod = function (a, b) {
+            var tmp = a - b * Math.floor(a / b);
+            if (tmp < 0) {
+                return tmp + b;
+            }
+            return tmp;
         };
         return Coordinate;
     })();
+    ParticleSwarm.Coordinate = Coordinate;
     /**
-     * Particle
+     * 点についての情報を扱う Class
      */
     var Particle = (function () {
         /**
@@ -66,10 +130,10 @@ var ParticleSwarm;
          * @param elevation
          */
         Particle.prototype.updateElevation = function (elevation) {
-            if (this.localBestCoordinate === null || this.localBestCoordinate.elevation <= elevation) {
+            if (this.localBestCoordinate === null || this.localBestCoordinate.getElevation() <= elevation) {
                 this.localBestCoordinate = new Coordinate(this.coordinate.longitude, this.coordinate.latitude, elevation);
             }
-            this.coordinate.elevation = elevation;
+            this.coordinate.setElevation(elevation);
         };
         /**
          * vector を更新する
@@ -88,11 +152,15 @@ var ParticleSwarm;
          * 座標を更新する
          */
         Particle.prototype.moveToNext = function () {
+            this.previousCoordinate = new Coordinate(this.coordinate.longitude, this.coordinate.latitude, this.coordinate.getElevation());
             this.coordinate.plusCoordinate(this.vector);
         };
         return Particle;
     })();
+    ParticleSwarm.Particle = Particle;
     /**
+     * 点群の初期化を行う
+     *
      * @returns {Particle[]}
      */
     function initializeParticle() {
@@ -103,40 +171,59 @@ var ParticleSwarm;
         return particles;
     }
     /**
-     * すべての Particle について標高を取得し，更新する
+     * 最終結果の出力
      *
-     * @param particles {Particle[]}
-     * @returns {Particle[]}
+     * @param ge {GoogleEarth}
+     * @param bestCoordinate
      */
-    function updateElevations(particles) {
-        for (var i = 0; i < particles.length; i++) {
-            particles[i].updateElevation(Math.random()); // TODO
-        }
-        return particles;
+    function finish(ge, bestCoordinate) {
+        ge.drawResult(bestCoordinate);
+        console.log("finish!");
+        console.log(bestCoordinate);
     }
     /**
-     * main
+     * 点群の更新とそれの描画を再帰的に行う
+     *
+     * @param ge {GoogleEarth}
+     * @param loop {number}
+     * @param particles {Particle[]}
+     * @param bestCoordinate {Coordinate}
      */
-    function main() {
-        var particles = initializeParticle();
-        var bestCoordinate = null;
-        for (var i = 0; i < LOOP_MAX; i++) {
-            particles = updateElevations(particles);
-            // TODO : 描画
+    function moveSwarm(ge, loop, particles, bestCoordinate) {
+        var promise = GoogleEarth.getElevations(particles);
+        promise.done(function () {
             // 全体の最良地点を求める
             for (var j = 0; j < particles.length; j++) {
-                if (bestCoordinate === null || bestCoordinate.elevation < particles[j].coordinate.elevation) {
+                if (bestCoordinate === null || bestCoordinate.getElevation() < particles[j].coordinate.getElevation()) {
                     var tmpCoordinate = particles[j].coordinate;
-                    bestCoordinate = new Coordinate(tmpCoordinate.longitude, tmpCoordinate.latitude, tmpCoordinate.elevation);
+                    bestCoordinate = new Coordinate(tmpCoordinate.longitude, tmpCoordinate.latitude, tmpCoordinate.getElevation());
                 }
             }
+            // TODO : 最良点の描画
             // それぞれの Particle について，vector を求め，次の座標を決定する
             for (var j = 0; j < particles.length; j++) {
                 particles[j].calcVector(bestCoordinate);
                 particles[j].moveToNext();
             }
-        }
-        // TODO : 最良点の情報を出力
+            ge.drawArrows(particles);
+            loop++;
+            if (loop < LOOP_MAX) {
+                moveSwarm(ge, loop, particles, bestCoordinate);
+            }
+            else {
+                finish(ge, bestCoordinate);
+            }
+        });
+    }
+    /**
+     * main
+     */
+    function main() {
+        ge = new GoogleEarth();
+        var promise = ge.initializeEarth();
+        promise.done(function () {
+            moveSwarm(ge, 0, initializeParticle(), null);
+        });
     }
     ParticleSwarm.main = main;
 })(ParticleSwarm || (ParticleSwarm = {}));
