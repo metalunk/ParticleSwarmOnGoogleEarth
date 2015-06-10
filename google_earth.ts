@@ -70,6 +70,7 @@ class GoogleEarth {
      */
     drawArrows(particles:ParticleSwarm.Particle[]) {
         for (var i = 0; i < particles.length; i++) {
+<<<<<<< HEAD
             var lineStringPlacemark = this.ge.createPlacemark('');
             var lineString = this.ge.createLineString('');
             lineString.getCoordinates().pushLatLngAlt(
@@ -80,6 +81,25 @@ class GoogleEarth {
             );
             lineStringPlacemark.setGeometry(lineString);
             this.ge.getFeatures().appendChild(lineStringPlacemark);
+=======
+            var polygonPlacemark = this.ge.createPlacemark('');
+            var polygon = this.ge.createPolygon('');
+            polygonPlacemark.setGeometry(polygon);
+            polygon.setAltitudeMode(this.ge.ALTITUDE_CLAMP_TO_SEA_FLOOR);
+            var outer = this.ge.createLinearRing('');
+            outer.getCoordinates().pushLatLngAlt(
+                particles[i].previousCoordinate.latitude, particles[i].previousCoordinate.longitude, 0
+            );
+            outer.getCoordinates().pushLatLngAlt(
+                particles[i].coordinate.latitude, particles[i].coordinate.longitude, 0
+            );
+            polygon.setOuterBoundary(outer);
+            polygonPlacemark.setStyleSelector(this.ge.createStyle(''));
+            var lineStyle = polygonPlacemark.getStyleSelector().getLineStyle();
+            lineStyle.setWidth(2);
+            lineStyle.getColor().set('9900ffff');
+            this.ge.getFeatures().appendChild(polygonPlacemark);
+>>>>>>> 3411e89d0c9815e67bf21460555d1260547c3aec
         }
     }
 
