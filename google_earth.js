@@ -60,14 +60,6 @@ var GoogleEarth = (function () {
      */
     GoogleEarth.prototype.drawArrows = function (particles) {
         for (var i = 0; i < particles.length; i++) {
-<<<<<<< HEAD
-            var lineStringPlacemark = this.ge.createPlacemark('');
-            var lineString = this.ge.createLineString('');
-            lineString.getCoordinates().pushLatLngAlt(particles[i].previousCoordinate.latitude, particles[i].previousCoordinate.longitude, 0);
-            lineString.getCoordinates().pushLatLngAlt(particles[i].coordinate.latitude, particles[i].coordinate.longitude, 0);
-            lineStringPlacemark.setGeometry(lineString);
-            this.ge.getFeatures().appendChild(lineStringPlacemark);
-=======
             var polygonPlacemark = this.ge.createPlacemark('');
             var polygon = this.ge.createPolygon('');
             polygonPlacemark.setGeometry(polygon);
@@ -81,7 +73,6 @@ var GoogleEarth = (function () {
             lineStyle.setWidth(2);
             lineStyle.getColor().set('9900ffff');
             this.ge.getFeatures().appendChild(polygonPlacemark);
->>>>>>> 3411e89d0c9815e67bf21460555d1260547c3aec
         }
     };
     /**

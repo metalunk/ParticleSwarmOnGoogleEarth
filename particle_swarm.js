@@ -4,21 +4,12 @@
  */
 var ParticleSwarm;
 (function (ParticleSwarm) {
-<<<<<<< HEAD
-    var LOOP_MAX = 40;
-    var N_PARTICLE = 20; // ひとまず Google Elevation API の一度の最大リクエスト数である 512 まで
-    var INERTIA = 0.9;
-    var C1_RATE = 0.9;
-    var C2_RATE = 0.9;
-    var MAXIMIZATION = 1; // {-1, 1}
-=======
     var LOOP_MAX = 30;
     var N_PARTICLE = 20; // ひとまず Google Elevation API の一度の最大リクエスト数である 512 まで
     var INERTIA = 0.9;
     var C1_RATE = 0.9; // 郡の最良点方向へ向かう割合
     var C2_RATE = 0.9; // 自分の最良点方向へ向かう割合
     var MAXIMIZATION = 1; // -1 : minimization, 1 : maximization
->>>>>>> 3411e89d0c9815e67bf21460555d1260547c3aec
     var ROUND = 100000000;
     var ge;
     /**
@@ -64,17 +55,10 @@ var ParticleSwarm;
                 this.longitude = Coordinate.positiveMod(this.longitude + 180, 360) - 180;
                 if (this.latitude < -90 || 90 < this.latitude) {
                     if (this.latitude < -90) {
-<<<<<<< HEAD
-                        this.latitude = -90 - this.latitude % (-90);
-                    }
-                    else if (90 < this.latitude) {
-                        this.latitude = 90 - this.latitude % 90;
-=======
                         this.latitude = -180 - this.latitude;
                     }
                     else if (90 < this.latitude) {
                         this.latitude = 180 - this.latitude;
->>>>>>> 3411e89d0c9815e67bf21460555d1260547c3aec
                     }
                     if (0 <= this.longitude) {
                         this.longitude -= 180;
@@ -85,11 +69,8 @@ var ParticleSwarm;
                 }
                 // 念のため無限ループ回避
                 if (30 < i++) {
-<<<<<<< HEAD
-=======
                     console.log("Break");
                     console.log(this);
->>>>>>> 3411e89d0c9815e67bf21460555d1260547c3aec
                     break;
                 }
             }
