@@ -6,9 +6,9 @@ var ParticleSwarm;
 (function (ParticleSwarm) {
     var LOOP_MAX = 30;
     var N_PARTICLE = 20; // ひとまず Google Elevation API の一度の最大リクエスト数である 512 まで
-    var INERTIA = 0.9;
-    var C1_RATE = 0.9; // 郡の最良点方向へ向かう割合
-    var C2_RATE = 0.9; // 自分の最良点方向へ向かう割合
+    var INERTIA = 0.4;
+    var C1_RATE = 1.5; // 郡の最良点方向へ向かう割合
+    var C2_RATE = 2.0; // 自分の最良点方向へ向かう割合
     var MAXIMIZATION = 1; // -1 : minimization, 1 : maximization
     var ROUND = 100000000;
     var ge;
@@ -40,18 +40,19 @@ var ParticleSwarm;
             return this.elevation * MAXIMIZATION;
         };
         /**
-         * 座標をよしなに変換しながら足す
-         * TODO : 変換が正しいのか確認する
+         * 元の座業に対して，Vector(進む方向と距離) を足す
+         * 座標系からはみ出した分はよしなに変換する
          *
          * @param vector {Coordinate}
          * @returns {Coordinate}
          */
-        Coordinate.prototype.plusCoordinate = function (vector) {
-            this.longitude += vector.longitude;
-            this.latitude += vector.latitude;
+        Coordinate.prototype.plusVector = function (vector) {
+            // 大円にそって進む
+            this.longitude += vector.longitude * Math.cos(this.latitude / Math.PI);
+            this.latitude += vector.latitude + vector.longitude * Math.sin(this.latitude / Math.PI);
             // 座標が直交座標系からはみ出たときの変換
             var i = 0;
-            while (this.longitude < -180 || 180 < this.longitude || this.latitude < -90 || 90 < this.latitude) {
+            while (this.longitude < -180 || 180 < this.longitude || this.latitude < -90 || 91 < this.latitude) {
                 this.longitude = Coordinate.positiveMod(this.longitude + 180, 360) - 180;
                 if (this.latitude < -90 || 90 < this.latitude) {
                     if (this.latitude < -90) {
@@ -141,19 +142,26 @@ var ParticleSwarm;
          * @param bestCoordinate {Coordinate}
          */
         Particle.prototype.calcVector = function (bestCoordinate) {
+            var MAX_VECTOR = 30;
             this.vector.longitude = INERTIA * this.vector.longitude +
                 C1_RATE * Math.random() * (this.localBestCoordinate.longitude - this.coordinate.longitude) +
                 C2_RATE * Math.random() * (bestCoordinate.longitude - this.coordinate.longitude);
             this.vector.latitude = INERTIA * this.vector.latitude +
                 C1_RATE * Math.random() * (this.localBestCoordinate.latitude - this.coordinate.latitude) +
                 C2_RATE * Math.random() * (bestCoordinate.latitude - this.coordinate.latitude);
+            // 速度が早くなりすぎると精度が低下するため，最高速を設定する
+            if (this.vector.longitude > MAX_VECTOR || this.vector.latitude > MAX_VECTOR) {
+                var rate = MAX_VECTOR / Math.max(this.vector.longitude, this.vector.latitude);
+                this.vector.longitude = this.vector.longitude * rate;
+                this.vector.latitude = this.vector.latitude * rate;
+            }
         };
         /**
          * 座標を更新する
          */
         Particle.prototype.moveToNext = function () {
             this.previousCoordinate = new Coordinate(this.coordinate.longitude, this.coordinate.latitude, this.coordinate.getElevation());
-            this.coordinate.plusCoordinate(this.vector);
+            this.coordinate.plusVector(this.vector);
         };
         return Particle;
     })();
