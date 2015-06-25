@@ -1,139 +1,30 @@
 /// <reference path="google_earth.ts"/>
+/// <reference path="coordinate.ts"/>
 
 /**
  * ParticleSwarm
  */
 module ParticleSwarm {
     var LOOP_MAX = 30;
-    var N_PARTICLE = 20; // ひとまず Google Elevation API の一度の最大リクエスト数である 512 まで
+    var N_PARTICLE = 10; // ひとまず Google Elevation API の一度の最大リクエスト数である 512 まで
     var INERTIA = 0.4;
     var C1_RATE = 1.5; // 郡の最良点方向へ向かう割合
     var C2_RATE = 2.0; // 自分の最良点方向へ向かう割合
-    var MAXIMIZATION = 1; // -1 : minimization, 1 : maximization
-    var ROUND = 100000000;
-
     var ge;
-
-    /**
-     * 座標と標高を扱う Class
-     */
-    export class Coordinate {
-        longitude:number;
-        latitude:number;
-        private elevation:number = null;
-
-        constructor(longitude:number, latitude:number, elevation:number = null) {
-            this.longitude = longitude;
-            this.latitude = latitude;
-            if (elevation !== null) {
-                this.elevation = elevation;
-            }
-        }
-
-        /**
-         * @param elevation {number}
-         */
-        setElevation(elevation:number) {
-            this.elevation = elevation;
-        }
-
-        /**
-         * 最大化 / 最小化の切り替えのため，{-1, 1} をとる MAXIMIZATION をかける
-         *
-         * @returns {number}
-         */
-        getElevation() {
-            return this.elevation * MAXIMIZATION;
-        }
-
-        /**
-         * 元の座業に対して，Vector(進む方向と距離) を足す
-         * 座標系からはみ出した分はよしなに変換する
-         *
-         * @param vector {Coordinate}
-         * @returns {Coordinate}
-         */
-        plusVector(vector:Coordinate) {
-            // 大円にそって進む
-            this.longitude += vector.longitude * Math.cos(this.latitude / Math.PI);
-            this.latitude += vector.latitude + vector.longitude * Math.sin(this.latitude / Math.PI);
-
-            // 座標が直交座標系からはみ出たときの変換
-            var i = 0;
-            while (this.longitude < -180 || 180 < this.longitude || this.latitude < -90 || 91 < this.latitude) {
-                this.longitude = Coordinate.positiveMod(this.longitude + 180, 360) - 180;
-                if (this.latitude < -90 || 90 < this.latitude) {
-                    if (this.latitude < -90) {
-                        this.latitude = -180 - this.latitude;
-                    } else if (90 < this.latitude) {
-                        this.latitude = 180 - this.latitude;
-                    }
-                    if (0 <= this.longitude) {
-                        this.longitude -= 180;
-                    } else {
-                        this.longitude += 180;
-                    }
-                }
-                // 念のため無限ループ回避
-                if (30 < i++) {
-                    console.log("Break");
-                    console.log(this);
-                    break;
-                }
-            }
-
-            // 四捨五入
-            this.longitude = Math.round(this.longitude * ROUND) / ROUND;
-            this.latitude = Math.round(this.latitude * ROUND) / ROUND;
-        }
-
-        /**
-         * ランダムで座標を生成する
-         *
-         * @returns {Coordinate}
-         */
-        static randomConstruct() {
-            var MIN_LONG = -180;
-            var MAX_LONG = 180;
-            var MIN_LAT = -90;
-            var MAX_LAT = 90;
-
-            var longitude = (MAX_LONG - MIN_LONG) * Math.random() + MIN_LONG;
-            var latitude = (MAX_LAT - MIN_LAT) * Math.random() + MIN_LAT;
-            return new Coordinate(longitude, latitude);
-        }
-
-        /**
-         * 正の mod を返す
-         * JavaScript の % は -190 % 180 = -10 と返すが
-         * positiveMod は -190 % 180 = 170 と返す
-         *
-         * @param a
-         * @param b
-         * @returns {number}
-         */
-        static positiveMod(a:number, b:number) {
-            var tmp = a - b * Math.floor(a / b);
-            if (tmp < 0) {
-                return tmp + b;
-            }
-            return tmp;
-        }
-    }
 
     /**
      * 点についての情報を扱う Class
      */
     export class Particle {
-        coordinate:Coordinate;
-        previousCoordinate:Coordinate;
-        localBestCoordinate:Coordinate = null;
-        vector = new Coordinate(0, 0);
+        coordinate:Coordinate.Coordinate;
+        previousCoordinate:Coordinate.Coordinate;
+        localBestCoordinate:Coordinate.Coordinate = null;
+        vector:Coordinate.Vector = new Coordinate.Vector(0, 0);
 
         /**
          * @param coordinate {Coordinate}
          */
-        constructor(coordinate:Coordinate) {
+        constructor(coordinate:Coordinate.Coordinate) {
             this.coordinate = coordinate;
         }
 
@@ -145,7 +36,7 @@ module ParticleSwarm {
          */
         updateElevation(elevation:number) {
             if (this.localBestCoordinate === null || this.localBestCoordinate.getElevation() <= elevation) {
-                this.localBestCoordinate = new Coordinate(
+                this.localBestCoordinate = new Coordinate.Coordinate(
                     this.coordinate.longitude, this.coordinate.latitude, elevation
                 );
             }
@@ -157,29 +48,29 @@ module ParticleSwarm {
          *
          * @param bestCoordinate {Coordinate}
          */
-        calcVector(bestCoordinate:Coordinate) {
-            var MAX_VECTOR = 30;
+        calcVector(bestCoordinate:Coordinate.Coordinate) {
+            var vectorL = Coordinate.Vector.constructWithCoordinate(this.localBestCoordinate, this.coordinate);
+            var vectorG = Coordinate.Vector.constructWithCoordinate(bestCoordinate, this.coordinate);
+            this.vector.x = INERTIA * this.vector.x +
+                C1_RATE * Math.random() * vectorL.x +
+                C2_RATE * Math.random() * vectorG.x;
+            this.vector.y = INERTIA * this.vector.y +
+                C1_RATE * Math.random() * vectorL.y +
+                C2_RATE * Math.random() * vectorG.y;
 
-            this.vector.longitude = INERTIA * this.vector.longitude +
-                C1_RATE * Math.random() * (this.localBestCoordinate.longitude - this.coordinate.longitude) +
-                C2_RATE * Math.random() * (bestCoordinate.longitude - this.coordinate.longitude);
-            this.vector.latitude = INERTIA * this.vector.latitude +
-                C1_RATE * Math.random() * (this.localBestCoordinate.latitude - this.coordinate.latitude) +
-                C2_RATE * Math.random() * (bestCoordinate.latitude - this.coordinate.latitude);
+            // メモリ開放の方法いいのないのか
+            vectorL = null;
+            vectorG = null;
 
             // 速度が早くなりすぎると精度が低下するため，最高速を設定する
-            if (this.vector.longitude > MAX_VECTOR || this.vector.latitude > MAX_VECTOR) {
-                var rate = MAX_VECTOR / Math.max(this.vector.longitude, this.vector.latitude);
-                this.vector.longitude = this.vector.longitude * rate;
-                this.vector.latitude = this.vector.latitude * rate;
-            }
+            this.vector.ceilVector();
         }
 
         /**
          * 座標を更新する
          */
         moveToNext() {
-            this.previousCoordinate = new Coordinate(
+            this.previousCoordinate = new Coordinate.Coordinate(
                 this.coordinate.longitude, this.coordinate.latitude, this.coordinate.getElevation()
             );
             this.coordinate.plusVector(this.vector);
@@ -194,7 +85,7 @@ module ParticleSwarm {
     function initializeParticle() {
         var particles = [];
         for (var i = 0; i < N_PARTICLE; i++) {
-            particles[i] = new Particle(Coordinate.randomConstruct());
+            particles[i] = new Particle(Coordinate.Coordinate.randomConstruct());
         }
         return particles;
     }
@@ -205,7 +96,7 @@ module ParticleSwarm {
      * @param ge {GoogleEarth}
      * @param bestCoordinate
      */
-    function finish(ge:GoogleEarth, bestCoordinate:Coordinate) {
+    function finish(ge:GoogleEarth, bestCoordinate:Coordinate.Coordinate) {
         ge.drawResult(bestCoordinate);
         console.log("finish!");
         console.log(bestCoordinate);
@@ -219,7 +110,7 @@ module ParticleSwarm {
      * @param particles {Particle[]}
      * @param bestCoordinate {Coordinate}
      */
-    function moveSwarm(ge:GoogleEarth, loop:number, particles:Particle[], bestCoordinate:Coordinate) {
+    function moveSwarm(ge:GoogleEarth, loop:number, particles:Particle[], bestCoordinate:Coordinate.Coordinate) {
         var promise = GoogleEarth.getElevations(particles);
 
         promise.done(function () {
@@ -227,7 +118,7 @@ module ParticleSwarm {
             for (var j = 0; j < particles.length; j++) {
                 if (bestCoordinate === null || bestCoordinate.getElevation() < particles[j].coordinate.getElevation()) {
                     var tmpCoordinate = particles[j].coordinate;
-                    bestCoordinate = new Coordinate(
+                    bestCoordinate = new Coordinate.Coordinate(
                         tmpCoordinate.longitude, tmpCoordinate.latitude, tmpCoordinate.getElevation()
                     );
                 }
@@ -257,8 +148,9 @@ module ParticleSwarm {
     export function main() {
         ge = new GoogleEarth();
         var promise = ge.initializeEarth();
+        var particles = initializeParticle();
         promise.done(function () {
-            moveSwarm(ge, 0, initializeParticle(), null);
+            moveSwarm(ge, 0, particles, null);
         });
     }
 }

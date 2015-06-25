@@ -32,8 +32,7 @@ var GoogleEarth = (function () {
         var locations = [];
         var elevator = new google.maps.ElevationService();
         particles.forEach(function (particle) {
-            var requestedLocation = new google.maps.LatLng(particle.coordinate.latitude, particle.coordinate.longitude);
-            locations.push(requestedLocation);
+            locations.push(new google.maps.LatLng(particle.coordinate.latitude, particle.coordinate.longitude));
         });
         var positionalRequest = {
             'locations': locations
@@ -94,6 +93,11 @@ var GoogleEarth = (function () {
         lookAt.setLongitude(coordinate.longitude);
         lookAt.setRange(this.ZOOM);
         this.ge.getView().setAbstractView(lookAt);
+        placemark = null;
+        style = null;
+        point = null;
+        lookAt = null;
     };
     return GoogleEarth;
 })();
+//# sourceMappingURL=google_earth.js.map

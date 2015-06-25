@@ -1,7 +1,6 @@
 /// <reference path="particle_swarm.ts"/>
 
-declare
-var google;
+declare var google;
 var jQuery;
 
 class GoogleEarth {
@@ -40,10 +39,9 @@ class GoogleEarth {
         var locations = [];
         var elevator = new google.maps.ElevationService();
         particles.forEach(function (particle) {
-            var requestedLocation = new google.maps.LatLng(
+            locations.push(new google.maps.LatLng(
                 particle.coordinate.latitude, particle.coordinate.longitude
-            );
-            locations.push(requestedLocation);
+            ));
         });
         var positionalRequest = {
             'locations': locations
@@ -93,7 +91,7 @@ class GoogleEarth {
     /**
      * @param coordinate {ParticleSwarm.Coordinate}
      */
-    drawResult(coordinate:ParticleSwarm.Coordinate) {
+    drawResult(coordinate:Coordinate.Coordinate) {
         var placemark = this.ge.createPlacemark('');
         placemark.setName("Optimal Value : " + coordinate.getElevation() + " meters.");
         var style = this.ge.createStyle(''); //create a new style
@@ -110,5 +108,10 @@ class GoogleEarth {
         lookAt.setLongitude(coordinate.longitude);
         lookAt.setRange(this.ZOOM);
         this.ge.getView().setAbstractView(lookAt);
+
+        placemark = null;
+        style = null;
+        point = null;
+        lookAt = null;
     }
 }
