@@ -50,6 +50,9 @@ var GoogleEarth = (function () {
             }
             deferred.resolve();
         });
+        locations = null;
+        elevator = null;
+        positionalRequest = null;
         return deferred.promise();
     };
     /**
@@ -73,6 +76,10 @@ var GoogleEarth = (function () {
             lineStyle.getColor().set('9900ffff');
             this.ge.getFeatures().appendChild(polygonPlacemark);
         }
+        polygonPlacemark = null;
+        polygon = null;
+        outer = null;
+        lineStyle = null;
     };
     /**
      * @param coordinate {ParticleSwarm.Coordinate}
@@ -100,4 +107,3 @@ var GoogleEarth = (function () {
     };
     return GoogleEarth;
 })();
-//# sourceMappingURL=google_earth.js.map

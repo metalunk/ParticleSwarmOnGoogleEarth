@@ -18,14 +18,16 @@ module ParticleSwarm {
     export class Particle {
         coordinate:Coordinate.Coordinate;
         previousCoordinate:Coordinate.Coordinate;
-        localBestCoordinate:Coordinate.Coordinate = null;
-        vector:Coordinate.Vector = new Coordinate.Vector(0, 0);
+        localBestCoordinate:Coordinate.Coordinate;
+        vector:Coordinate.Vector;
 
         /**
          * @param coordinate {Coordinate}
          */
         constructor(coordinate:Coordinate.Coordinate) {
             this.coordinate = coordinate;
+            this.localBestCoordinate = null;
+            this.vector = new Coordinate.Vector(0, 0);
         }
 
         /**

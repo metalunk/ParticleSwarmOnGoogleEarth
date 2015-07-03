@@ -58,6 +58,11 @@ class GoogleEarth {
             }
             deferred.resolve();
         });
+
+        locations = null;
+        elevator = null;
+        positionalRequest = null;
+
         return deferred.promise();
     }
 
@@ -86,6 +91,11 @@ class GoogleEarth {
             lineStyle.getColor().set('9900ffff');
             this.ge.getFeatures().appendChild(polygonPlacemark);
         }
+
+        polygonPlacemark = null;
+        polygon = null;
+        outer = null;
+        lineStyle = null;
     }
 
     /**

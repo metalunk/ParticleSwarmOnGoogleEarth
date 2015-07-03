@@ -2,7 +2,7 @@
  * Coordinate
  */
 var Coordinate;
-(function (_Coordinate) {
+(function (Coordinate_1) {
     var MAXIMIZATION = 1; // -1 : minimization, 1 : maximization
     var ROUND = 100000000;
     /**
@@ -11,12 +11,9 @@ var Coordinate;
     var Coordinate = (function () {
         function Coordinate(longitude, latitude, elevation) {
             if (elevation === void 0) { elevation = null; }
-            this.elevation = null;
             this.longitude = longitude;
             this.latitude = latitude;
-            if (elevation !== null) {
-                this.elevation = elevation;
-            }
+            this.elevation = elevation;
         }
         /**
          * @param elevation {number}
@@ -40,8 +37,8 @@ var Coordinate;
          */
         Coordinate.prototype.plusVector = function (vector) {
             // 大円にそって進む
-            this.longitude += vector.x * Math.abs(vector.y) / (Math.cos(this.latitude / 180) - Math.cos((this.latitude + vector.y)) / 180);
             this.latitude += vector.y;
+            this.longitude += vector.x / Math.cos(this.latitude * Math.PI / 180);
             // 座標が直交座標系からはみ出たときの変換
             var i = 0;
             while (this.longitude < -180 || 180 < this.longitude || this.latitude < -90 || 90 < this.latitude) {
@@ -103,7 +100,7 @@ var Coordinate;
         };
         return Coordinate;
     })();
-    _Coordinate.Coordinate = Coordinate;
+    Coordinate_1.Coordinate = Coordinate;
     /**
      * 点の移動を扱うクラス
      * 経度，緯度方向へのそれぞれの移動距離を長さで持つ
@@ -124,7 +121,8 @@ var Coordinate;
          */
         Vector.constructWithCoordinate = function (fromCoordinate, toCoordinate) {
             var y = fromCoordinate.latitude - toCoordinate.latitude;
-            var x = (fromCoordinate.longitude - toCoordinate.longitude) * (Math.cos(fromCoordinate.latitude / 180) - Math.cos(toCoordinate.latitude / 180)) / Math.abs(y);
+            var x = (fromCoordinate.longitude - toCoordinate.longitude) *
+                Math.cos(toCoordinate.latitude * Math.PI / 180);
             return new Vector(x, y);
         };
         /**
@@ -140,6 +138,5 @@ var Coordinate;
         };
         return Vector;
     })();
-    _Coordinate.Vector = Vector;
+    Coordinate_1.Vector = Vector;
 })(Coordinate || (Coordinate = {}));
-//# sourceMappingURL=coordinate.js.map

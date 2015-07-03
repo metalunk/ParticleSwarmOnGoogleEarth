@@ -19,9 +19,9 @@ var ParticleSwarm;
          * @param coordinate {Coordinate}
          */
         function Particle(coordinate) {
+            this.coordinate = coordinate;
             this.localBestCoordinate = null;
             this.vector = new Coordinate.Vector(0, 0);
-            this.coordinate = coordinate;
         }
         /**
          * 標高を更新する
@@ -43,8 +43,12 @@ var ParticleSwarm;
         Particle.prototype.calcVector = function (bestCoordinate) {
             var vectorL = Coordinate.Vector.constructWithCoordinate(this.localBestCoordinate, this.coordinate);
             var vectorG = Coordinate.Vector.constructWithCoordinate(bestCoordinate, this.coordinate);
-            this.vector.x = INERTIA * this.vector.x + C1_RATE * Math.random() * vectorL.x + C2_RATE * Math.random() * vectorG.x;
-            this.vector.y = INERTIA * this.vector.y + C1_RATE * Math.random() * vectorL.y + C2_RATE * Math.random() * vectorG.y;
+            this.vector.x = INERTIA * this.vector.x +
+                C1_RATE * Math.random() * vectorL.x +
+                C2_RATE * Math.random() * vectorG.x;
+            this.vector.y = INERTIA * this.vector.y +
+                C1_RATE * Math.random() * vectorL.y +
+                C2_RATE * Math.random() * vectorG.y;
             // メモリ開放の方法いいのないのか
             vectorL = null;
             vectorG = null;
@@ -95,12 +99,15 @@ var ParticleSwarm;
     function moveSwarm(ge, loop, particles, bestCoordinate) {
         var promise = GoogleEarth.getElevations(particles);
         promise.done(function () {
+            // 全体の最良地点を求める
             for (var j = 0; j < particles.length; j++) {
                 if (bestCoordinate === null || bestCoordinate.getElevation() < particles[j].coordinate.getElevation()) {
                     var tmpCoordinate = particles[j].coordinate;
                     bestCoordinate = new Coordinate.Coordinate(tmpCoordinate.longitude, tmpCoordinate.latitude, tmpCoordinate.getElevation());
                 }
             }
+            // TODO : 最良点の描画
+            // それぞれの Particle について，vector を求め，次の座標を決定する
             for (var j = 0; j < particles.length; j++) {
                 particles[j].calcVector(bestCoordinate);
                 particles[j].moveToNext();
@@ -128,4 +135,3 @@ var ParticleSwarm;
     }
     ParticleSwarm.main = main;
 })(ParticleSwarm || (ParticleSwarm = {}));
-//# sourceMappingURL=particle_swarm.js.map

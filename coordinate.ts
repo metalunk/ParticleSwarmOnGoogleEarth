@@ -11,14 +11,12 @@ module Coordinate {
     export class Coordinate {
         longitude:number;
         latitude:number;
-        private elevation:number = null;
+        private elevation:number;
 
         constructor(longitude:number, latitude:number, elevation:number = null) {
             this.longitude = longitude;
             this.latitude = latitude;
-            if (elevation !== null) {
-                this.elevation = elevation;
-            }
+            this.elevation = elevation;
         }
 
         /**
@@ -46,9 +44,8 @@ module Coordinate {
          */
         plusVector(vector:Vector) {
             // 大円にそって進む
-            this.longitude += vector.x * Math.abs(vector.y) /
-                (Math.cos(this.latitude / 180) - Math.cos((this.latitude + vector.y)) / 180);
             this.latitude += vector.y;
+            this.longitude += vector.x / Math.cos(this.latitude * Math.PI / 180);
 
             // 座標が直交座標系からはみ出たときの変換
             var i = 0;
@@ -138,8 +135,7 @@ module Coordinate {
         static constructWithCoordinate(fromCoordinate:Coordinate, toCoordinate:Coordinate) {
             var y = fromCoordinate.latitude - toCoordinate.latitude;
             var x = (fromCoordinate.longitude - toCoordinate.longitude) *
-                (Math.cos(fromCoordinate.latitude / 180) - Math.cos(toCoordinate.latitude / 180)) /
-                Math.abs(y);
+                Math.cos(toCoordinate.latitude * Math.PI / 180);
             return new Vector(x, y);
         }
 
