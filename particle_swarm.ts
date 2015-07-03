@@ -1,5 +1,5 @@
-/// <reference path="google_earth.ts"/>
-/// <reference path="coordinate.ts"/>
+/// <reference path="Util/google_earth.ts"/>
+/// <reference path="Util/coordinate.ts"/>
 
 /**
  * ParticleSwarm

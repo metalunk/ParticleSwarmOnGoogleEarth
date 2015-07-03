@@ -2,7 +2,7 @@
  * Coordinate
  */
 var Coordinate;
-(function (Coordinate_1) {
+(function (_Coordinate) {
     var MAXIMIZATION = 1; // -1 : minimization, 1 : maximization
     var ROUND = 100000000;
     /**
@@ -100,7 +100,7 @@ var Coordinate;
         };
         return Coordinate;
     })();
-    Coordinate_1.Coordinate = Coordinate;
+    _Coordinate.Coordinate = Coordinate;
     /**
      * 点の移動を扱うクラス
      * 経度，緯度方向へのそれぞれの移動距離を長さで持つ
@@ -121,8 +121,7 @@ var Coordinate;
          */
         Vector.constructWithCoordinate = function (fromCoordinate, toCoordinate) {
             var y = fromCoordinate.latitude - toCoordinate.latitude;
-            var x = (fromCoordinate.longitude - toCoordinate.longitude) *
-                Math.cos(toCoordinate.latitude * Math.PI / 180);
+            var x = (fromCoordinate.longitude - toCoordinate.longitude) * Math.cos(toCoordinate.latitude * Math.PI / 180);
             return new Vector(x, y);
         };
         /**
@@ -138,5 +137,6 @@ var Coordinate;
         };
         return Vector;
     })();
-    Coordinate_1.Vector = Vector;
+    _Coordinate.Vector = Vector;
 })(Coordinate || (Coordinate = {}));
+//# sourceMappingURL=coordinate.js.map
