@@ -1,9 +1,11 @@
-# ParticleSwarm on GoogleEarth
+# Optimization on GoogleEarth
 ## What is this?
-This app runs ParticleSwarm optimization on Google Earth. Optimize value is elevation.
+This is optimization program. Optimized value is elevation at the Earth.
 
-Some parameters are in the code particle_swarm.ts. (I will make the code getting parameter from URI)
+So I used GoogleElevation API and GoogleEarth API.
+
+This includes two optimization methods - NelderMead method, Particle Swarm Optimization (PSO).
 
 ## How to run?
 1. Install GoogleEarth Plugin to your browser
-2. Run particle_swarm.html
+2. Run NelderMead/nelder_mead.html or ParticleSwarm/particle_swarm.html
